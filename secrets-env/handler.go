@@ -15,13 +15,16 @@ func init() {
 	}
 }
 
+// setSecretsAsEnvs reads OpenFaaS secrets from files, then maps them
+// into environment variables by calling os.Setenv.
 func setSecretsAsEnvs() error {
 	secretsDir := "/var/openfaas/secrets/"
 	if v, ok := os.LookupEnv("OPENFAAS_SECRETS_PATH"); ok && len(v) > 0 {
 		secretsDir = v
 	}
+	// This will occur during faas-cli build, but not at runtime.
 	if _, err := os.Stat(secretsDir); err != nil && os.IsNotExist(err) {
-		log.Printf("Secrets directory %s does not exist", secretsDir)
+		log.Printf("No such secrets directory: %q", secretsDir)
 		return nil
 	}
 
@@ -31,6 +34,7 @@ func setSecretsAsEnvs() error {
 	}
 
 	for _, f := range s {
+		// The ..data prefix is a hidden directory used by Kubernetes for reloading secrets.
 		if !f.IsDir() && !strings.HasPrefix(f.Name(), "..data") {
 			secret := path.Join(secretsDir, f.Name())
 			body, err := os.ReadFile(secret)
@@ -40,7 +44,7 @@ func setSecretsAsEnvs() error {
 			if envName, ok := os.LookupEnv(f.Name()); ok && len(envName) > 0 {
 				os.Setenv(envName, string(body))
 			} else {
-				log.Printf("Secret found without environment variable mapping: %s\n", f.Name())
+				log.Printf("Secret %s has no environment variable mapping\n", f.Name())
 			}
 		}
 	}
@@ -62,6 +66,7 @@ func setSecretsAsEnvs() error {
 // os.Getenv("AWS_SECRET_ACCESS_KEY")
 func Handle(w http.ResponseWriter, r *http.Request) {
 
+	// Consume the secrets as required.
 	msg := fmt.Sprintf("AWS secrets from environment: %s, %s\n",
 		os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
 
