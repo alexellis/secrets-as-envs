@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
 func init() {
@@ -30,20 +31,20 @@ func setSecretsAsEnvs() error {
 	}
 
 	for _, f := range s {
-		if f.IsDir() {
-			continue
-		}
-		secret := path.Join(secretsDir, f.Name())
-		body, err := os.ReadFile(secret)
-		if err != nil {
-			return fmt.Errorf("unable to read secret file: %s, error: %s", secret, err)
-		}
-		if envName, ok := os.LookupEnv(f.Name()); ok && len(envName) > 0 {
-			os.Setenv(envName, string(body))
-		} else {
-			log.Printf("Secret found without environment variable mapping: %s\n", f.Name())
+		if !f.IsDir() && !strings.HasPrefix(f.Name(), "..data") {
+			secret := path.Join(secretsDir, f.Name())
+			body, err := os.ReadFile(secret)
+			if err != nil {
+				return fmt.Errorf("unable to read secret file: %s, error: %s", secret, err)
+			}
+			if envName, ok := os.LookupEnv(f.Name()); ok && len(envName) > 0 {
+				os.Setenv(envName, string(body))
+			} else {
+				log.Printf("Secret found without environment variable mapping: %s\n", f.Name())
+			}
 		}
 	}
+
 	return nil
 }
 
