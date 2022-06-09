@@ -1,6 +1,8 @@
 ## secrets-as-envs
 
-Load a list of pre-defined secrets from openfaas files into environment variables.
+The design of OpenFaaS supports consuming secrets as files.
+
+This example shows how you can load a list of pre-defined secrets from openfaas files into environment variables.
 
 Running the tests:
 
